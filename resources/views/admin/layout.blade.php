@@ -19,6 +19,7 @@
                     <a href="{{ route('admin.users.index') }}" class="px-2.5 py-1.5 rounded-md {{ request()->routeIs('admin.users.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white' }}">Users</a>
                     <a href="{{ route('admin.reports.index') }}" class="px-2.5 py-1.5 rounded-md {{ request()->routeIs('admin.reports.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white' }}">Reports</a>
                     <a href="{{ route('admin.payments.index') }}" class="px-2.5 py-1.5 rounded-md {{ request()->routeIs('admin.payments.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white' }}">Payments (XTR)</a>
+                    <a href="{{ route('admin.withdrawals.index') }}" class="px-2.5 py-1.5 rounded-md {{ request()->routeIs('admin.withdrawals.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white' }}">💸 Withdraw (GPay/Bank)</a>
                     <a href="{{ route('admin.settings.index') }}" class="px-2.5 py-1.5 rounded-md {{ request()->routeIs('admin.settings.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white' }}">Settings</a>
                     <a href="{{ route('admin.audit.index') }}" class="px-2.5 py-1.5 rounded-md {{ request()->routeIs('admin.audit.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white' }}">Audit Trail</a>
                 </nav>

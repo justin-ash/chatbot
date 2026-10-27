@@ -35,6 +35,8 @@ return [
         'free_matches_per_day' => (int) env('FREE_MATCHES_PER_DAY', 10),
         'pack_credits' => (int) env('PAID_PACK_CREDITS', 50),
         'pack_stars' => (int) env('PAID_PACK_STARS', 100),
+        'usd_per_star' => (float) env('USD_PER_STAR', 0.02),
+        'inr_per_usd' => (float) env('INR_PER_USD', 84.0),
         'custom_payment_url' => env('CUSTOM_PAYMENT_URL', ''),
         'usage_timezone' => env('USAGE_TIMEZONE', 'UTC'),
         'message_rate_limit_per_minute' => (int) env('MESSAGE_RATE_LIMIT_PER_MINUTE', 25),
@@ -66,6 +68,12 @@ return [
             'underage_safety' => '🛡️ Age / Safety Violation',
             'other' => '📝 Other Violation',
         ],
+    ],
+
+    'razorpayx' => [
+        'key_id' => env('RAZORPAYX_KEY_ID', ''),
+        'key_secret' => env('RAZORPAYX_KEY_SECRET', ''),
+        'account_number' => env('RAZORPAYX_ACCOUNT_NUMBER', ''),
     ],
 
 ];

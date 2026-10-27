@@ -531,6 +531,96 @@ class TelegramBotFeatureTest extends TestCase
         ]);
     }
 
+    public function test_admin_gpay_and_bank_account_withdrawal_flow(): void
+    {
+        $webAdmin = User::create([
+            'name' => 'Finance Admin',
+            'email' => 'finance@example.com',
+            'password' => 'secret123',
+            'role' => 'super_admin',
+            'is_active' => true,
+        ]);
+
+        $tgUser = TelegramUser::create([
+            'telegram_id' => 98001,
+            'language_code' => 'en',
+            'accepted_terms_at' => now(),
+            'status' => 'active',
+        ]);
+
+        // Create 2 paid orders of 100 XTR Stars each (= 200 Stars = $4.00 USD = ₹336.00 INR)
+        Payment::create([
+            'user_id' => $tgUser->id,
+            'invoice_payload' => 'pack50_paid_1',
+            'currency' => 'XTR',
+            'total_amount' => 100,
+            'credits_granted' => 50,
+            'telegram_payment_charge_id' => 'chg_1',
+            'status' => 'paid',
+            'credited_at' => now(),
+        ]);
+
+        Payment::create([
+            'user_id' => $tgUser->id,
+            'invoice_payload' => 'pack50_paid_2',
+            'currency' => 'XTR',
+            'total_amount' => 100,
+            'credits_granted' => 50,
+            'telegram_payment_charge_id' => 'chg_2',
+            'status' => 'paid',
+            'credited_at' => now(),
+        ]);
+
+        // 1. Admin adds a GPay UPI Account and a Bank Account
+        $this->actingAs($webAdmin)->post('/admin/withdrawals/accounts', [
+            'method_type' => 'gpay_upi',
+            'account_label' => 'Primary GPay',
+            'account_holder_name' => 'Admin Owner',
+            'gpay_upi_id' => 'adminowner@okaxis',
+            'gpay_phone' => '+919876543210',
+        ])->assertRedirect();
+
+        $this->actingAs($webAdmin)->post('/admin/withdrawals/accounts', [
+            'method_type' => 'bank_account',
+            'account_label' => 'HDFC Corporate Bank',
+            'account_holder_name' => 'Admin Owner',
+            'bank_name' => 'HDFC Bank',
+            'account_number' => '50100234567890',
+            'ifsc_swift_code' => 'HDFC0001234',
+        ])->assertRedirect();
+
+        $gpayAccount = \App\Models\AdminPayoutAccount::where('method_type', 'gpay_upi')->firstOrFail();
+        $bankAccount = \App\Models\AdminPayoutAccount::where('method_type', 'bank_account')->firstOrFail();
+
+        // 2. Withdraw 100 Stars (₹168.00 / $2.00) to GPay UPI
+        $this->actingAs($webAdmin)->post('/admin/withdrawals', [
+            'payout_account_id' => $gpayAccount->id,
+            'stars_to_withdraw' => 100,
+            'notes' => 'Payout to GPay',
+        ])->assertRedirect();
+
+        $withdrawal = \App\Models\Withdrawal::firstOrFail();
+        $this->assertSame('gpay_upi', $withdrawal->payout_method);
+        $this->assertSame(100, $withdrawal->stars_deducted);
+        $this->assertEquals(2.00, $withdrawal->usd_amount);
+        $this->assertEquals(168.00, $withdrawal->inr_amount);
+
+        // 3. Over-withdrawing beyond remaining 100 Stars fails safely
+        $this->actingAs($webAdmin)->post('/admin/withdrawals', [
+            'payout_account_id' => $bankAccount->id,
+            'stars_to_withdraw' => 150,
+        ])->assertSessionHasErrors('withdrawal');
+
+        // 4. Mark GPay withdrawal completed with UTR reference
+        $this->actingAs($webAdmin)->post("/admin/withdrawals/{$withdrawal->id}/status", [
+            'status' => 'completed',
+            'provider_payout_id' => 'UTR412398765432',
+        ])->assertRedirect();
+
+        $this->assertSame('completed', $withdrawal->fresh()->status);
+        $this->assertSame('UTR412398765432', $withdrawal->fresh()->provider_payout_id);
+    }
+
     private function sendWebhook(array $payload): void
     {
         $this->postJson('/telegram/webhook', $payload, [

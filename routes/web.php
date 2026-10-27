@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WithdrawalController;
 use App\Http\Controllers\PaymentCheckoutController;
 use App\Http\Controllers\TelegramWebhookController;
 use App\Http\Middleware\EnsureAdminRole;
@@ -48,6 +49,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Payments & Refunds
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('/payments/{payment}/refund', [PaymentController::class, 'refund'])->name('payments.refund');
+
+        // Admin Payouts & GPay / Bank Account Withdrawals
+        Route::get('/withdrawals', [WithdrawalController::class, 'index'])->name('withdrawals.index');
+        Route::post('/withdrawals/accounts', [WithdrawalController::class, 'storeAccount'])->name('withdrawals.accounts.store');
+        Route::delete('/withdrawals/accounts/{account}', [WithdrawalController::class, 'deleteAccount'])->name('withdrawals.accounts.delete');
+        Route::post('/withdrawals', [WithdrawalController::class, 'storeWithdrawal'])->name('withdrawals.store');
+        Route::post('/withdrawals/{withdrawal}/status', [WithdrawalController::class, 'updateStatus'])->name('withdrawals.status');
 
         // Runtime Configuration, Webhook Connection & Audit Trail
         Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
