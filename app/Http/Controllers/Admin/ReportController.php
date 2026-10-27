@@ -20,13 +20,21 @@ class ReportController extends Controller
     public function index(Request $request): View
     {
         $status = trim((string) $request->query('status', 'open'));
+        $perPage = in_array((int) $request->query('per_page', 15), [10, 15, 25, 50], true)
+            ? (int) $request->query('per_page', 15)
+            : 15;
 
         $query = Report::with(['reporter', 'reportedUser', 'conversation.messages'])->latest();
         if ($status !== '' && $status !== 'all') {
             $query->where('status', $status);
         }
 
-        $reports = $query->paginate(20)->withQueryString();
+        $reports = $query->paginate($perPage, ['*'], 'page')->withQueryString();
+
+        $feedbackItems = ChatFeedback::with(['reporter', 'targetUser'])
+            ->latest()
+            ->paginate(10, ['*'], 'feedback_page')
+            ->withQueryString();
 
         $feedbackStats = [
             'thumbs_up' => ChatFeedback::where('feedback_type', 'thumbs_up')->count(),
@@ -37,7 +45,7 @@ class ReportController extends Controller
             'other_report' => ChatFeedback::where('feedback_type', 'other_report')->count(),
         ];
 
-        return view('admin.reports.index', compact('reports', 'status', 'feedbackStats'));
+        return view('admin.reports.index', compact('reports', 'feedbackItems', 'status', 'perPage', 'feedbackStats'));
     }
 
     public function resolve(Request $request, Report $report): RedirectResponse

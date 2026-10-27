@@ -62,8 +62,7 @@ class UpdateRouter
         }
 
         $langHint = $this->normalizeLanguageCode((string) ($message['from']['language_code'] ?? 'en'));
-        $usernameHint = isset($message['from']['username']) ? (string) $message['from']['username'] : null;
-        $user = $this->resolveOrCreateUser($fromId, $langHint, $usernameHint);
+        $user = $this->resolveOrCreateUser($fromId, $langHint, $message['from'] ?? []);
 
         // Handle Telegram Stars successful_payment update
         if (isset($message['successful_payment']) && is_array($message['successful_payment'])) {
@@ -204,7 +203,7 @@ class UpdateRouter
         }
 
         $langHint = $this->normalizeLanguageCode((string) ($callbackQuery['from']['language_code'] ?? 'en'));
-        $user = $this->resolveOrCreateUser($fromId, $langHint);
+        $user = $this->resolveOrCreateUser($fromId, $langHint, $callbackQuery['from'] ?? []);
 
         if ($callbackId !== '') {
             try {
@@ -865,11 +864,27 @@ class UpdateRouter
             ->exists();
     }
 
-    private function resolveOrCreateUser(int $telegramId, string $languageHint = 'en', ?string $username = null): TelegramUser
+    private function resolveOrCreateUser(int $telegramId, string $languageHint = 'en', array|string|null $fromData = null): TelegramUser
     {
+        $from = is_array($fromData) ? $fromData : ['username' => $fromData];
+        $username = isset($from['username']) && trim((string) $from['username']) !== ''
+            ? ltrim(trim((string) $from['username']), '@')
+            : null;
+        $firstName = isset($from['first_name']) && trim((string) $from['first_name']) !== ''
+            ? trim((string) $from['first_name'])
+            : null;
+        $lastName = isset($from['last_name']) && trim((string) $from['last_name']) !== ''
+            ? trim((string) $from['last_name'])
+            : null;
+        $isPremium = (bool) ($from['is_premium'] ?? false);
+
         $user = TelegramUser::firstOrCreate(
             ['telegram_id' => $telegramId],
             [
+                'username' => $username,
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'is_premium' => $isPremium,
                 'language_code' => $languageHint,
                 'status' => 'active',
                 'paid_credits_balance' => 0,
@@ -877,10 +892,23 @@ class UpdateRouter
             ]
         );
 
-        $user->update(['last_seen_at' => now()]);
+        $updates = ['last_seen_at' => now()];
+        if ($username !== null) {
+            $updates['username'] = $username;
+        }
+        if ($firstName !== null) {
+            $updates['first_name'] = $firstName;
+        }
+        if ($lastName !== null) {
+            $updates['last_name'] = $lastName;
+        }
+        if (isset($from['is_premium'])) {
+            $updates['is_premium'] = $isPremium;
+        }
+        $user->update($updates);
 
         if ($username !== null && $username !== '') {
-            $cleanUsername = ltrim(strtolower(trim($username)), '@');
+            $cleanUsername = strtolower($username);
             $allowlist = config('services.telegram.admin_ids', []);
             if (in_array($cleanUsername, $allowlist, true)) {
                 AdminUser::updateOrCreate(

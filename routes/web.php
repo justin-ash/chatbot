@@ -38,6 +38,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // User Management & Moderation
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/{user}/details', [UserController::class, 'details'])->name('users.details');
         Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::post('/users/{user}/moderate', [UserController::class, 'moderate'])->name('users.moderate');
         Route::post('/users/{user}/credits', [UserController::class, 'adjustCredits'])->name('users.credits');

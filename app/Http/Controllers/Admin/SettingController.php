@@ -169,10 +169,24 @@ class SettingController extends Controller
         }
     }
 
-    public function auditLogs(): View
+    public function auditLogs(Request $request): View
     {
-        $logs = AuditLog::latest('created_at')->paginate(30);
-        return view('admin.audit.index', compact('logs'));
+        $search = trim((string) $request->query('q', ''));
+        $perPage = in_array((int) $request->query('per_page', 20), [10, 20, 50, 100], true)
+            ? (int) $request->query('per_page', 20)
+            : 20;
+
+        $query = AuditLog::latest('created_at');
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('action', 'like', "%{$search}%")
+                    ->orWhere('target_type', 'like', "%{$search}%")
+                    ->orWhere('reason', 'like', "%{$search}%");
+            });
+        }
+
+        $logs = $query->paginate($perPage)->withQueryString();
+        return view('admin.audit.index', compact('logs', 'search', 'perPage'));
     }
 
     private function maskToken(string $token): string

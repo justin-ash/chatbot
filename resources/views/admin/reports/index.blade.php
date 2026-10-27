@@ -32,11 +32,11 @@
         </div>
     @endif
 
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
         <h1 class="text-xl font-bold text-white">🚩 ChatMingle Safety Reports Queue</h1>
-        <div class="flex gap-2 text-xs">
+        <div class="flex items-center gap-2 text-xs">
             @foreach (['open' => 'Open', 'resolved' => 'Resolved', 'dismissed' => 'Dismissed', 'all' => 'All'] as $key => $label)
-                <a href="{{ route('admin.reports.index', ['status' => $key]) }}"
+                <a href="{{ route('admin.reports.index', ['status' => $key, 'per_page' => $perPage ?? 15]) }}"
                     class="px-3 py-1.5 rounded-lg {{ $status === $key ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-300 border border-slate-800' }}">
                     {{ $label }}
                 </a>
@@ -44,15 +44,15 @@
         </div>
     </div>
 
-    <div class="space-y-4">
+    <div class="space-y-4 mb-4">
         @forelse ($reports as $report)
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 text-xs">
                 <div class="flex flex-wrap items-center justify-between gap-4 mb-3">
                     <div>
                         <span class="font-bold text-rose-400 text-sm">#{{ $report->id }} — {{ strtoupper($report->reason_code) }}</span>
                         <span class="ml-3 text-slate-400">
-                            Reporter: <a href="{{ route('admin.users.show', $report->reporter_user_id) }}" class="text-indigo-400 underline">#{{ $report->reporter_user_id }}</a>
-                            &rarr; Reported: <a href="{{ route('admin.users.show', $report->reported_user_id) }}" class="text-indigo-400 underline">#{{ $report->reported_user_id }} (TG: {{ $report->reportedUser?->telegram_id }})</a>
+                            Reporter: <a href="{{ route('admin.users.show', $report->reporter_user_id) }}" class="text-indigo-400 underline">#{{ $report->reporter_user_id }} ({{ $report->reporter?->displayName() }})</a>
+                            &rarr; Reported: <a href="{{ route('admin.users.show', $report->reported_user_id) }}" class="text-indigo-400 underline">#{{ $report->reported_user_id }} ({{ $report->reportedUser?->displayName() }} • TG: {{ $report->reportedUser?->telegram_id }})</a>
                         </span>
                     </div>
                     <span class="px-2.5 py-0.5 rounded uppercase font-semibold {{ $report->status === 'open' ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-800 text-slate-400' }}">
@@ -101,7 +101,54 @@
         @endforelse
     </div>
 
-    <div class="mt-4">
+    <div class="mb-8">
         {{ $reports->links() }}
     </div>
+
+    @if (isset($feedbackItems))
+        <div class="mt-8">
+            <h2 class="text-lg font-bold text-white mb-4">👍👎 All Post-Chat Feedback Entries (Paginated)</h2>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden mb-4">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-950 text-slate-400 uppercase">
+                        <tr>
+                            <th class="px-4 py-3">ID</th>
+                            <th class="px-4 py-3">Match</th>
+                            <th class="px-4 py-3">Reporter</th>
+                            <th class="px-4 py-3">Target Partner</th>
+                            <th class="px-4 py-3">Feedback Type</th>
+                            <th class="px-4 py-3">Description</th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">Submitted At</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        @forelse ($feedbackItems as $item)
+                            <tr>
+                                <td class="px-4 py-3 font-mono">#{{ $item->id }}</td>
+                                <td class="px-4 py-3 font-mono text-indigo-300">Match #{{ $item->match_id }}</td>
+                                <td class="px-4 py-3">
+                                    <a href="{{ route('admin.users.show', $item->reporter_user_id) }}" class="text-indigo-400 underline">#{{ $item->reporter_user_id }} ({{ $item->reporter?->displayName() }})</a>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <a href="{{ route('admin.users.show', $item->target_user_id) }}" class="text-indigo-400 underline">#{{ $item->target_user_id }} ({{ $item->targetUser?->displayName() }})</a>
+                                </td>
+                                <td class="px-4 py-3 font-bold uppercase {{ $item->feedback_type === 'thumbs_up' ? 'text-emerald-400' : ($item->feedback_type === 'thumbs_down' ? 'text-amber-400' : 'text-rose-400') }}">
+                                    {{ $item->feedback_type }}
+                                </td>
+                                <td class="px-4 py-3 text-slate-300">{{ $item->description ?? '—' }}</td>
+                                <td class="px-4 py-3 uppercase text-slate-400">{{ $item->status }}</td>
+                                <td class="px-4 py-3 text-slate-400">{{ $item->created_at?->format('Y-m-d H:i:s') }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="px-4 py-6 text-center text-slate-500">No feedback submissions yet.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            {{ $feedbackItems->links() }}
+        </div>
+    @endif
 @endsection

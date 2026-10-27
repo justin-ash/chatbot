@@ -37,17 +37,17 @@ class DashboardController extends Controller
         $recentReports = Report::with(['reporter', 'reportedUser'])
             ->where('status', 'open')
             ->latest()
-            ->limit(6)
-            ->get();
+            ->paginate(5, ['*'], 'reports_page')
+            ->withQueryString();
 
         $recentPayments = Payment::with('user')
             ->latest()
-            ->limit(6)
-            ->get();
+            ->paginate(5, ['*'], 'payments_page')
+            ->withQueryString();
 
         $recentAudits = AuditLog::latest('created_at')
-            ->limit(8)
-            ->get();
+            ->paginate(5, ['*'], 'audits_page')
+            ->withQueryString();
 
         return view('admin.dashboard', compact('metrics', 'recentReports', 'recentPayments', 'recentAudits'));
     }

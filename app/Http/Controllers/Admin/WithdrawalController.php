@@ -32,7 +32,8 @@ class WithdrawalController extends Controller
 
         $withdrawals = Withdrawal::with('payoutAccount')
             ->latest()
-            ->paginate(20);
+            ->paginate(15)
+            ->withQueryString();
 
         return view('admin.withdrawals.index', compact('balance', 'accounts', 'withdrawals'));
     }

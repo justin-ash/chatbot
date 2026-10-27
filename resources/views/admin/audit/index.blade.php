@@ -3,9 +3,22 @@
 @section('title', 'Audit Trail')
 
 @section('content')
-    <h1 class="text-xl font-bold text-white mb-6">📜 Immutable Admin Audit Trail</h1>
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <h1 class="text-xl font-bold text-white">📜 Immutable Admin Audit Trail</h1>
 
-    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <form method="GET" action="{{ route('admin.audit.index') }}" class="flex items-center gap-2 text-xs">
+            <input type="text" name="q" value="{{ $search ?? '' }}" placeholder="Search action, target, or reason..."
+                class="rounded-lg bg-slate-900 border border-slate-700 px-3 py-1.5 text-white w-56">
+            <select name="per_page" onchange="this.form.submit()" class="rounded-lg bg-slate-900 border border-slate-700 px-2.5 py-1.5 text-white">
+                @foreach ([10, 20, 50, 100] as $size)
+                    <option value="{{ $size }}" @selected(($perPage ?? 20) === $size)>{{ $size }} / page</option>
+                @endforeach
+            </select>
+            <button type="submit" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Filter</button>
+        </form>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden mb-4">
         <table class="w-full text-left text-xs">
             <thead class="bg-slate-950 text-slate-400 uppercase">
                 <tr>
@@ -46,7 +59,5 @@
         </table>
     </div>
 
-    <div class="mt-4">
-        {{ $logs->links() }}
-    </div>
+    {{ $logs->links() }}
 @endsection

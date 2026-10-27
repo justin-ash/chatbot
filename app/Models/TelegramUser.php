@@ -13,6 +13,10 @@ class TelegramUser extends Model
 
     protected $fillable = [
         'telegram_id',
+        'username',
+        'first_name',
+        'last_name',
+        'is_premium',
         'language_code',
         'accepted_terms_at',
         'status',
@@ -27,6 +31,7 @@ class TelegramUser extends Model
     {
         return [
             'telegram_id' => 'integer',
+            'is_premium' => 'boolean',
             'accepted_terms_at' => 'datetime',
             'muted_until' => 'datetime',
             'paid_credits_balance' => 'integer',
@@ -34,6 +39,18 @@ class TelegramUser extends Model
             'pending_feedback_id' => 'integer',
             'last_seen_at' => 'datetime',
         ];
+    }
+
+    public function displayName(): string
+    {
+        $full = trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+        if ($full !== '') {
+            return $full;
+        }
+        if ($this->username) {
+            return '@' . $this->username;
+        }
+        return 'TG #' . $this->telegram_id;
     }
 
     public function hasAcceptedTerms(): bool
@@ -91,6 +108,16 @@ class TelegramUser extends Model
         return $this->hasMany(Report::class, 'reported_user_id');
     }
 
+    public function feedbackSubmitted(): HasMany
+    {
+        return $this->hasMany(ChatFeedback::class, 'reporter_user_id');
+    }
+
+    public function feedbackReceived(): HasMany
+    {
+        return $this->hasMany(ChatFeedback::class, 'target_user_id');
+    }
+
     public function bans(): HasMany
     {
         return $this->hasMany(Ban::class, 'user_id');
@@ -99,6 +126,11 @@ class TelegramUser extends Model
     public function blockedUsers(): HasMany
     {
         return $this->hasMany(BlockedUser::class, 'blocker_user_id');
+    }
+
+    public function blockedByUsers(): HasMany
+    {
+        return $this->hasMany(BlockedUser::class, 'blocked_user_id');
     }
 
     public function activeConversation(): ?Conversation

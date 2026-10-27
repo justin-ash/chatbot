@@ -619,6 +619,20 @@ class TelegramBotFeatureTest extends TestCase
 
         $this->assertSame('completed', $withdrawal->fresh()->status);
         $this->assertSame('UTR412398765432', $withdrawal->fresh()->provider_payout_id);
+
+        // 5. Verify /admin/users, /admin/users/{user}/details popup endpoint, and paginated admin views
+        $this->actingAs($webAdmin)->get('/admin/users?per_page=10')->assertOk();
+        $this->actingAs($webAdmin)->getJson("/admin/users/{$tgUser->id}/details")
+            ->assertOk()
+            ->assertJsonPath('user.telegram_id', 98001)
+            ->assertJsonPath('stats.paid_orders_count', 2)
+            ->assertJsonPath('stats.total_stars_spent', 200);
+
+        $this->actingAs($webAdmin)->get("/admin/users/{$tgUser->id}")->assertOk();
+        $this->actingAs($webAdmin)->get('/admin/reports')->assertOk();
+        $this->actingAs($webAdmin)->get('/admin/payments')->assertOk();
+        $this->actingAs($webAdmin)->get('/admin/withdrawals')->assertOk();
+        $this->actingAs($webAdmin)->get('/admin/audit-logs')->assertOk();
     }
 
     private function sendWebhook(array $payload): void

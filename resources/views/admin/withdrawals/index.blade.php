@@ -245,6 +245,10 @@
         </table>
     </div>
 
+    <div class="mt-4">
+        {{ $withdrawals->links() }}
+    </div>
+
     <script>
         function togglePayoutFields(method) {
             const gpay = document.getElementById('gpay_fields');

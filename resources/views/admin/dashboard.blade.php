@@ -29,48 +29,54 @@
     </div>
 
     <div class="grid md:grid-cols-2 gap-6">
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-semibold text-white">🚩 Open Moderation Reports ({{ $metrics['open_reports'] }})</h2>
-                <a href="{{ route('admin.reports.index') }}" class="text-xs text-indigo-400 hover:underline">View All &rarr;</a>
-            </div>
-            @if ($recentReports->isEmpty())
-                <p class="text-xs text-slate-500">No open reports pending review.</p>
-            @else
-                <div class="space-y-2.5">
-                    @foreach ($recentReports as $report)
-                        <div class="flex items-center justify-between text-xs p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                            <div>
-                                <span class="font-semibold text-rose-400">#{{ $report->id }} {{ strtoupper($report->reason_code) }}</span>
-                                <span class="text-slate-400 ml-2">Reported User #{{ $report->reported_user_id }}</span>
-                            </div>
-                            <span class="text-slate-500">{{ $report->created_at?->diffForHumans() }}</span>
-                        </div>
-                    @endforeach
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-semibold text-white">🚩 Open Moderation Reports ({{ $metrics['open_reports'] }})</h2>
+                    <a href="{{ route('admin.reports.index') }}" class="text-xs text-indigo-400 hover:underline">View All &rarr;</a>
                 </div>
-            @endif
+                @if ($recentReports->isEmpty())
+                    <p class="text-xs text-slate-500 mb-4">No open reports pending review.</p>
+                @else
+                    <div class="space-y-2.5 mb-4">
+                        @foreach ($recentReports as $report)
+                            <div class="flex items-center justify-between text-xs p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                                <div>
+                                    <span class="font-semibold text-rose-400">#{{ $report->id }} {{ strtoupper($report->reason_code) }}</span>
+                                    <span class="text-slate-400 ml-2">Reported User #{{ $report->reported_user_id }}</span>
+                                </div>
+                                <span class="text-slate-500">{{ $report->created_at?->diffForHumans() }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+            {{ $recentReports->links() }}
         </div>
 
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-semibold text-white">🕒 Recent Admin Audit Events</h2>
-                <a href="{{ route('admin.audit.index') }}" class="text-xs text-indigo-400 hover:underline">Full Audit Log &rarr;</a>
-            </div>
-            @if ($recentAudits->isEmpty())
-                <p class="text-xs text-slate-500">No audit events recorded yet.</p>
-            @else
-                <div class="space-y-2.5">
-                    @foreach ($recentAudits as $audit)
-                        <div class="flex items-center justify-between text-xs p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                            <div>
-                                <span class="font-mono text-indigo-300">{{ $audit->action }}</span>
-                                <span class="text-slate-400 ml-2">{{ Str::limit($audit->reason, 45) }}</span>
-                            </div>
-                            <span class="text-slate-500">{{ $audit->created_at?->diffForHumans() }}</span>
-                        </div>
-                    @endforeach
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-semibold text-white">🕒 Recent Admin Audit Events</h2>
+                    <a href="{{ route('admin.audit.index') }}" class="text-xs text-indigo-400 hover:underline">Full Audit Log &rarr;</a>
                 </div>
-            @endif
+                @if ($recentAudits->isEmpty())
+                    <p class="text-xs text-slate-500 mb-4">No audit events recorded yet.</p>
+                @else
+                    <div class="space-y-2.5 mb-4">
+                        @foreach ($recentAudits as $audit)
+                            <div class="flex items-center justify-between text-xs p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                                <div>
+                                    <span class="font-mono text-indigo-300">{{ $audit->action }}</span>
+                                    <span class="text-slate-400 ml-2">{{ Str::limit($audit->reason, 45) }}</span>
+                                </div>
+                                <span class="text-slate-500">{{ $audit->created_at?->diffForHumans() }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+            {{ $recentAudits->links() }}
         </div>
     </div>
 @endsection
