@@ -164,6 +164,11 @@ class TelegramApi
         ], retryable: false);
     }
 
+    public function getMe(): array
+    {
+        return $this->call('getMe', [], retryable: false);
+    }
+
     public function getWebhookInfo(): array
     {
         return $this->call('getWebhookInfo', [], retryable: false);

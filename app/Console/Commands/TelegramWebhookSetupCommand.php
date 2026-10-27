@@ -37,7 +37,9 @@ class TelegramWebhookSetupCommand extends Command
                 return self::SUCCESS;
             }
 
-            $url = (string) ($this->option('url') ?: rtrim((string) config('app.url'), '/') . '/telegram/webhook');
+            $url = (string) ($this->option('url')
+                ?: config('services.telegram.webhook_url')
+                ?: rtrim((string) config('app.url'), '/') . '/api/telegram/webhook');
             $secret = (string) config('services.telegram.webhook_secret');
 
             if ($secret === '') {

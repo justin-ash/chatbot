@@ -26,9 +26,10 @@ return [
     'telegram' => [
         'token' => env('TELEGRAM_BOT_TOKEN', ''),
         'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET', ''),
+        'webhook_url' => env('TELEGRAM_WEBHOOK_URL', rtrim((string) env('APP_URL', 'http://localhost'), '/') . '/api/telegram/webhook'),
         'queue_updates' => (bool) env('TELEGRAM_QUEUE_UPDATES', false),
         'admin_ids' => array_values(array_filter(array_map(
-            static fn ($id) => (int) trim($id),
+            static fn ($id) => is_numeric(trim($id)) ? (int) trim($id) : ltrim(strtolower(trim($id)), '@'),
             explode(',', (string) env('TELEGRAM_ADMIN_IDS', ''))
         ))),
         'free_matches_per_day' => (int) env('FREE_MATCHES_PER_DAY', 10),

@@ -5,13 +5,19 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\BotSetting;
+use App\Services\Telegram\TelegramApi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Throwable;
 
 class SettingController extends Controller
 {
+    public function __construct(
+        private readonly TelegramApi $telegram,
+    ) {}
+
     public function index(): View
     {
         $settings = [
@@ -25,7 +31,26 @@ class SettingController extends Controller
             'maintenance_mode' => (bool) BotSetting::getValue('maintenance_mode', false),
         ];
 
-        return view('admin.settings.index', compact('settings'));
+        $webhookConfig = [
+            'token_configured' => trim((string) config('services.telegram.token')) !== '',
+            'token_masked' => $this->maskToken((string) config('services.telegram.token')),
+            'webhook_url' => (string) (config('services.telegram.webhook_url') ?: url('/api/telegram/webhook')),
+            'webhook_secret' => (string) config('services.telegram.webhook_secret'),
+            'bot_info' => null,
+            'webhook_info' => null,
+            'error' => null,
+        ];
+
+        if ($webhookConfig['token_configured']) {
+            try {
+                $webhookConfig['bot_info'] = $this->telegram->getMe();
+                $webhookConfig['webhook_info'] = $this->telegram->getWebhookInfo();
+            } catch (Throwable $e) {
+                $webhookConfig['error'] = $e->getMessage();
+            }
+        }
+
+        return view('admin.settings.index', compact('settings', 'webhookConfig'));
     }
 
     public function update(Request $request): RedirectResponse
@@ -78,9 +103,84 @@ class SettingController extends Controller
         return back()->with('status', 'Runtime bot configuration updated and recorded in audit trail.');
     }
 
+    public function registerWebhook(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'webhook_url' => ['required', 'url', 'starts_with:https://'],
+        ]);
+
+        $secret = (string) config('services.telegram.webhook_secret');
+        if ($secret === '') {
+            return back()->withErrors(['webhook_url' => 'TELEGRAM_WEBHOOK_SECRET is not set in .env.']);
+        }
+
+        try {
+            $this->telegram->setWebhook(
+                $validated['webhook_url'],
+                $secret,
+                ['message', 'callback_query', 'pre_checkout_query']
+            );
+
+            $this->telegram->setMyCommands([
+                ['command' => 'search', 'description' => 'Find a random person'],
+                ['command' => 'next', 'description' => 'Find a new partner'],
+                ['command' => 'stop', 'description' => 'Stop this chat'],
+                ['command' => 'help', 'description' => 'How to use ChatMingle'],
+                ['command' => 'language', 'description' => 'Change matching language'],
+                ['command' => 'balance', 'description' => 'View remaining searches & payment link'],
+                ['command' => 'buy', 'description' => 'Unlock 50 additional searches'],
+            ]);
+
+            AuditLog::record(
+                action: 'webhook.register',
+                targetType: 'telegram_webhook',
+                targetId: null,
+                reason: 'Registered Telegram HTTPS webhook and bot commands',
+                metadata: ['url' => $validated['webhook_url']],
+                actorAdminId: (int) Auth::id()
+            );
+
+            return back()->with('status', "✅ Webhook and ChatMingle commands registered at {$validated['webhook_url']}");
+        } catch (Throwable $e) {
+            return back()->withErrors(['webhook_url' => 'Failed to register webhook: ' . $e->getMessage()]);
+        }
+    }
+
+    public function deleteWebhook(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+
+        try {
+            $this->telegram->deleteWebhook();
+
+            AuditLog::record(
+                action: 'webhook.delete',
+                targetType: 'telegram_webhook',
+                targetId: null,
+                reason: 'Deleted Telegram webhook (switched to local polling mode)',
+                actorAdminId: (int) Auth::id()
+            );
+
+            return back()->with('status', 'Webhook deleted. You can now use `php artisan telegram:poll` for local polling.');
+        } catch (Throwable $e) {
+            return back()->withErrors(['webhook_url' => 'Failed to delete webhook: ' . $e->getMessage()]);
+        }
+    }
+
     public function auditLogs(): View
     {
         $logs = AuditLog::latest('created_at')->paginate(30);
         return view('admin.audit.index', compact('logs'));
+    }
+
+    private function maskToken(string $token): string
+    {
+        $token = trim($token);
+        if ($token === '' || strlen($token) < 12) {
+            return 'Not Configured';
+        }
+        return substr($token, 0, 10) . '...' . substr($token, -5);
     }
 }

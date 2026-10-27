@@ -39,12 +39,12 @@ class TelegramBotFeatureTest extends TestCase
 
     public function test_webhook_rejects_invalid_secret_and_deduplicates_update_id(): void
     {
-        // Forged secret -> 403
-        $this->postJson('/telegram/webhook', ['update_id' => 1001], [
+        // Forged secret on /api/telegram/webhook -> 403
+        $this->postJson('/api/telegram/webhook', ['update_id' => 1001], [
             'X-Telegram-Bot-Api-Secret-Token' => 'wrong-secret',
         ])->assertStatus(403);
 
-        // Valid secret -> 200
+        // Valid secret on /api/telegram/webhook -> 200
         $payload = [
             'update_id' => 1001,
             'message' => [
@@ -55,12 +55,12 @@ class TelegramBotFeatureTest extends TestCase
             ],
         ];
 
-        $this->postJson('/telegram/webhook', $payload, [
+        $this->postJson('/api/telegram/webhook', $payload, [
             'X-Telegram-Bot-Api-Secret-Token' => $this->secret,
         ])->assertOk()->assertJson(['ok' => true]);
 
         // Duplicate update_id -> idempotently ignored
-        $this->postJson('/telegram/webhook', $payload, [
+        $this->postJson('/api/telegram/webhook', $payload, [
             'X-Telegram-Bot-Api-Secret-Token' => $this->secret,
         ])->assertOk()->assertJson(['ok' => true, 'duplicate' => true]);
     }

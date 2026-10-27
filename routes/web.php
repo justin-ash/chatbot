@@ -49,9 +49,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('/payments/{payment}/refund', [PaymentController::class, 'refund'])->name('payments.refund');
 
-        // Runtime Configuration & Audit Trail
+        // Runtime Configuration, Webhook Connection & Audit Trail
         Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
+        Route::post('/settings/webhook/register', [SettingController::class, 'registerWebhook'])->name('settings.webhook.register');
+        Route::post('/settings/webhook/delete', [SettingController::class, 'deleteWebhook'])->name('settings.webhook.delete');
         Route::get('/audit-logs', [SettingController::class, 'auditLogs'])->name('audit.index');
     });
 });

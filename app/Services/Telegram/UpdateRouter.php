@@ -62,7 +62,8 @@ class UpdateRouter
         }
 
         $langHint = $this->normalizeLanguageCode((string) ($message['from']['language_code'] ?? 'en'));
-        $user = $this->resolveOrCreateUser($fromId, $langHint);
+        $usernameHint = isset($message['from']['username']) ? (string) $message['from']['username'] : null;
+        $user = $this->resolveOrCreateUser($fromId, $langHint, $usernameHint);
 
         // Handle Telegram Stars successful_payment update
         if (isset($message['successful_payment']) && is_array($message['successful_payment'])) {
@@ -864,7 +865,7 @@ class UpdateRouter
             ->exists();
     }
 
-    private function resolveOrCreateUser(int $telegramId, string $languageHint = 'en'): TelegramUser
+    private function resolveOrCreateUser(int $telegramId, string $languageHint = 'en', ?string $username = null): TelegramUser
     {
         $user = TelegramUser::firstOrCreate(
             ['telegram_id' => $telegramId],
@@ -877,6 +878,21 @@ class UpdateRouter
         );
 
         $user->update(['last_seen_at' => now()]);
+
+        if ($username !== null && $username !== '') {
+            $cleanUsername = ltrim(strtolower(trim($username)), '@');
+            $allowlist = config('services.telegram.admin_ids', []);
+            if (in_array($cleanUsername, $allowlist, true)) {
+                AdminUser::updateOrCreate(
+                    ['telegram_id' => $telegramId],
+                    [
+                        'user_id' => $user->id,
+                        'role' => 'super_admin',
+                        'enabled' => true,
+                    ]
+                );
+            }
+        }
 
         return $user;
     }
