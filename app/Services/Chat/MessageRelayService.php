@@ -97,6 +97,7 @@ class MessageRelayService
                 'sender_user_id' => $sender->id,
                 'telegram_message_id' => $telegramMessageId,
                 'message_type' => 'text',
+                'message_text' => $cleanText,
                 'char_length' => mb_strlen($cleanText),
                 'moderation_state' => 'rate_limited',
             ]);
@@ -112,12 +113,13 @@ class MessageRelayService
             ];
         }
 
-        // Record metadata only (no message body persisted per privacy design)
+        // Store message in database for chat history & moderation review
         ChatMessage::create([
             'conversation_id' => $conversation->id,
             'sender_user_id' => $sender->id,
             'telegram_message_id' => $telegramMessageId,
             'message_type' => 'text',
+            'message_text' => $cleanText,
             'char_length' => mb_strlen($cleanText),
             'moderation_state' => 'allowed',
         ]);

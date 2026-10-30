@@ -25,6 +25,7 @@ class UserController extends Controller
         $search = trim((string) $request->query('q', ''));
         $status = trim((string) $request->query('status', ''));
         $language = trim((string) $request->query('language', ''));
+        $gender = trim((string) $request->query('gender', ''));
         $perPage = in_array((int) $request->query('per_page', 15), [10, 15, 20, 50, 100], true)
             ? (int) $request->query('per_page', 15)
             : 15;
@@ -74,6 +75,14 @@ class UserController extends Controller
             $query->where('language_code', $language);
         }
 
+        if ($gender !== '') {
+            if ($gender === 'unspecified') {
+                $query->whereNull('gender');
+            } else {
+                $query->where('gender', $gender);
+            }
+        }
+
         $users = $query->paginate($perPage)->withQueryString();
         $supportedLanguages = config('services.telegram.supported_languages', []);
 
@@ -82,6 +91,7 @@ class UserController extends Controller
             'search',
             'status',
             'language',
+            'gender',
             'perPage',
             'freeLimit',
             'supportedLanguages'
@@ -127,10 +137,12 @@ class UserController extends Controller
                     'partner_id' => $partner?->id,
                     'partner_telegram_id' => $partner?->telegram_id,
                     'partner_name' => $partner?->displayName() ?? 'Unknown',
+                    'partner_gender' => $partner?->genderLabel() ?? 'Unspecified',
                     'messages_count' => $conv?->messages?->count() ?? 0,
                     'started_at' => $conv?->started_at?->format('Y-m-d H:i:s'),
                     'ended_at' => $conv?->ended_at?->format('Y-m-d H:i:s') ?? 'Active',
                     'end_reason' => $conv?->end_reason ?? '-',
+                    'chat_show_url' => $conv ? route('admin.chats.show', $conv) : '#',
                 ];
             });
 
@@ -198,6 +210,8 @@ class UserController extends Controller
                 'first_name' => $user->first_name ?? '-',
                 'last_name' => $user->last_name ?? '-',
                 'display_name' => $user->displayName(),
+                'gender' => $user->genderLabel(),
+                'raw_gender' => $user->gender ?? '',
                 'is_premium' => (bool) $user->is_premium,
                 'language_code' => strtoupper($user->language_code),
                 'status' => strtoupper($user->status),
@@ -209,6 +223,7 @@ class UserController extends Controller
                 'show_url' => route('admin.users.show', $user),
                 'moderate_url' => route('admin.users.moderate', $user),
                 'credits_url' => route('admin.users.credits', $user),
+                'profile_url' => route('admin.users.profile', $user),
             ],
             'stats' => [
                 'free_used' => $balance['free_used'],
@@ -357,5 +372,32 @@ class UserController extends Controller
         );
 
         return back()->with('status', "Adjusted paid credits ({$validated['direction']} {$amount}). New balance: {$newBalance}.");
+    }
+
+    public function updateProfile(Request $request, TelegramUser $user): RedirectResponse
+    {
+        $validated = $request->validate([
+            'gender' => ['nullable', 'in:male,female,other'],
+            'language_code' => ['nullable', 'string', 'max:12'],
+        ]);
+
+        $user->update([
+            'gender' => $validated['gender'] ?? null,
+            'language_code' => !empty($validated['language_code']) ? strtolower($validated['language_code']) : $user->language_code,
+        ]);
+
+        AuditLog::record(
+            action: 'user.profile_updated',
+            targetType: 'telegram_user',
+            targetId: $user->id,
+            reason: 'Admin updated user gender/language profile',
+            metadata: [
+                'gender' => $user->gender,
+                'language_code' => $user->language_code,
+            ],
+            actorAdminId: (int) Auth::id()
+        );
+
+        return back()->with('status', "Updated profile for user #{$user->id} (Gender: {$user->genderLabel()}).");
     }
 }

@@ -177,6 +177,7 @@ class UpdateRouter
             '/next' => $this->cmdNext($user),
             '/stop' => $this->cmdStop($user),
             '/language' => $this->cmdLanguage($user),
+            '/gender' => $this->cmdGender($user),
             '/balance' => $this->cmdBalance($user),
             '/buy', '/pay' => $this->cmdBuy($user),
             '/report' => $this->cmdReport($user),
@@ -288,6 +289,33 @@ class UpdateRouter
             return;
         }
 
+        if ($data === 'menu:gender') {
+            $this->cmdGender($user);
+            return;
+        }
+
+        if (str_starts_with($data, 'gender:set:')) {
+            $gender = strtolower(trim(substr($data, 11)));
+            if (in_array($gender, ['male', 'female', 'other'], true)) {
+                $user->update([
+                    'gender' => $gender,
+                    'accepted_terms_at' => $user->accepted_terms_at ?? now(),
+                ]);
+                $this->telegram->sendMessage(
+                    $user->telegram_id,
+                    "✅ Gender updated to {$user->genderLabel()}.\nSend /search or tap below to find a random person!",
+                    [
+                        'reply_markup' => [
+                            'inline_keyboard' => [
+                                [['text' => '🔍 Search Random Person (/search)', 'callback_data' => 'chat:find']],
+                            ],
+                        ],
+                    ]
+                );
+            }
+            return;
+        }
+
         if ($data === 'menu:balance') {
             $this->cmdBalance($user);
             return;
@@ -384,12 +412,14 @@ class UpdateRouter
 
         $text = "👋 Welcome back to ChatMingle!\n\n"
             . "🌐 Selected Language: {$currentLang}\n"
+            . "🚻 Gender: {$user->genderLabel()}\n"
             . "🎯 Free Random Searches Left Today: {$balance['free_remaining']}/{$balance['free_limit']}\n"
             . "⭐ Paid Credits Balance: {$balance['paid_remaining']}\n\n"
             . "Commands:\n"
             . "• /search — Find a random person\n"
             . "• /next — Find a new partner\n"
             . "• /stop — Stop this chat\n"
+            . "• /gender — Select your gender\n"
             . "• /help — How to use the bot";
 
         $this->telegram->sendMessage($user->telegram_id, $text, [
@@ -397,7 +427,10 @@ class UpdateRouter
                 'inline_keyboard' => [
                     [['text' => '🔍 Search Random Person (/search)', 'callback_data' => 'chat:find']],
                     [
-                        ['text' => '🌐 Change Language', 'callback_data' => 'menu:language'],
+                        ['text' => '🌐 Language', 'callback_data' => 'menu:language'],
+                        ['text' => '🚻 Gender', 'callback_data' => 'menu:gender'],
+                    ],
+                    [
                         ['text' => '💳 Balance / Payment Link', 'callback_data' => 'menu:balance'],
                     ],
                 ],
@@ -522,6 +555,29 @@ class UpdateRouter
             $user->telegram_id,
             $prefix . "🌐 Select your preferred language for ChatMingle matching:",
             ['reply_markup' => $this->buildLanguageKeyboard($user->language_code, includeFindButton: false)]
+        );
+    }
+
+    private function cmdGender(TelegramUser $user): void
+    {
+        $current = $user->gender;
+
+        $this->telegram->sendMessage(
+            $user->telegram_id,
+            "🚻 Select your gender (Current: {$user->genderLabel()}):",
+            [
+                'reply_markup' => [
+                    'inline_keyboard' => [
+                        [
+                            ['text' => ($current === 'male' ? '✅ ' : '') . '👨 Male', 'callback_data' => 'gender:set:male'],
+                            ['text' => ($current === 'female' ? '✅ ' : '') . '👩 Female', 'callback_data' => 'gender:set:female'],
+                        ],
+                        [
+                            ['text' => ($current === 'other' ? '✅ ' : '') . '🧑 Other / Prefer not to say', 'callback_data' => 'gender:set:other'],
+                        ],
+                    ],
+                ],
+            ]
         );
     }
 

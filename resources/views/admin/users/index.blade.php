@@ -27,6 +27,14 @@
                 @endforeach
             </select>
 
+            <select name="gender" class="rounded-lg bg-slate-900 border border-slate-700 px-2.5 py-2 text-white">
+                <option value="">All Genders</option>
+                <option value="male" @selected(($gender ?? '') === 'male')>👨 Male</option>
+                <option value="female" @selected(($gender ?? '') === 'female')>👩 Female</option>
+                <option value="other" @selected(($gender ?? '') === 'other')>🧑 Other</option>
+                <option value="unspecified" @selected(($gender ?? '') === 'unspecified')>Unspecified</option>
+            </select>
+
             <select name="per_page" onchange="this.form.submit()" class="rounded-lg bg-slate-900 border border-slate-700 px-2.5 py-2 text-white">
                 @foreach ([10, 15, 20, 50, 100] as $size)
                     <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }} / page</option>
@@ -34,7 +42,7 @@
             </select>
 
             <button type="submit" class="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Filter</button>
-            @if ($search !== '' || $status !== '' || $language !== '')
+            @if ($search !== '' || $status !== '' || $language !== '' || ($gender ?? '') !== '')
                 <a href="{{ route('admin.users.index') }}" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Reset</a>
             @endif
         </form>
@@ -78,9 +86,14 @@
                         </td>
 
                         <td class="px-4 py-3">
-                            <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-mono uppercase font-semibold">
-                                {{ $u->language_code }}
-                            </span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-mono uppercase font-semibold">
+                                    {{ $u->language_code }}
+                                </span>
+                                <span class="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 text-[11px] font-semibold">
+                                    {{ $u->genderLabel() }}
+                                </span>
+                            </div>
                             @if ($u->queueEntry)
                                 <div class="text-[11px] text-amber-400 font-medium mt-1">⏳ Queued</div>
                             @else
@@ -190,6 +203,7 @@
                         <div class="flex justify-between"><span class="text-slate-400">Telegram ID:</span> <span id="m_tg_id" class="font-mono text-indigo-300">-</span></div>
                         <div class="flex justify-between"><span class="text-slate-400">Username:</span> <span id="m_username" class="font-mono text-indigo-400">-</span></div>
                         <div class="flex justify-between"><span class="text-slate-400">First / Last Name:</span> <span id="m_fullname" class="text-slate-200">-</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Gender:</span> <span id="m_gender" class="font-semibold text-indigo-300">-</span></div>
                         <div class="flex justify-between"><span class="text-slate-400">Language:</span> <span id="m_lang" class="font-mono font-semibold text-white">-</span></div>
                         <div class="flex justify-between"><span class="text-slate-400">Live State:</span> <span id="m_queue_state" class="text-emerald-400 font-medium">-</span></div>
                     </div>
@@ -315,6 +329,7 @@
                 document.getElementById('m_tg_id').textContent = u.telegram_id;
                 document.getElementById('m_username').textContent = u.username;
                 document.getElementById('m_fullname').textContent = `${u.first_name} ${u.last_name}` + (u.is_premium ? ' (★ Premium)' : '');
+                document.getElementById('m_gender').textContent = u.gender || 'Unspecified';
                 document.getElementById('m_lang').textContent = u.language_code;
                 document.getElementById('m_queue_state').textContent = u.queue_state;
 
@@ -384,11 +399,12 @@
                     <div class="flex items-center justify-between py-2 border-b border-slate-800/80 last:border-0">
                         <div>
                             <span class="font-bold text-indigo-300">Match #${c.conversation_id}</span>
-                            <span class="ml-2 text-slate-300">Partner: ${c.partner_name} (#${c.partner_id ?? '-'})</span>
+                            <span class="ml-2 text-slate-300">Partner: ${c.partner_name} (#${c.partner_id ?? '-'} · ${c.partner_gender ?? 'Unspecified'})</span>
                             <span class="ml-2 px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">${c.language_code}</span>
                         </div>
-                        <div class="text-slate-400">
-                            💬 ${c.messages_count} msgs • ${c.started_at} (${c.status.toUpperCase()})
+                        <div class="flex items-center gap-3 text-slate-400">
+                            <span>💬 ${c.messages_count} msgs • ${c.started_at} (${c.status.toUpperCase()})</span>
+                            <a href="${c.chat_show_url}" class="px-2 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white font-semibold">View Chat &rarr;</a>
                         </div>
                     </div>
                 `).join('');

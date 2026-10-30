@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\ChatController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ReportController;
@@ -42,6 +43,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::post('/users/{user}/moderate', [UserController::class, 'moderate'])->name('users.moderate');
         Route::post('/users/{user}/credits', [UserController::class, 'adjustCredits'])->name('users.credits');
+        Route::post('/users/{user}/profile', [UserController::class, 'updateProfile'])->name('users.profile');
+
+        // Conversations & Stored Chat Messages Viewer
+        Route::get('/chats', [ChatController::class, 'index'])->name('chats.index');
+        Route::get('/chats/{conversation}/messages', [ChatController::class, 'messagesJson'])->name('chats.messages');
+        Route::get('/chats/{conversation}', [ChatController::class, 'show'])->name('chats.show');
 
         // Moderation Queue
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

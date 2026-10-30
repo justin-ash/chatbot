@@ -17,6 +17,7 @@
                 <nav class="flex items-center gap-4 text-sm">
                     <a href="{{ route('admin.dashboard') }}" class="px-2.5 py-1.5 rounded-md {{ request()->routeIs('admin.dashboard') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white' }}">Dashboard</a>
                     <a href="{{ route('admin.users.index') }}" class="px-2.5 py-1.5 rounded-md {{ request()->routeIs('admin.users.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white' }}">Users</a>
+                    <a href="{{ route('admin.chats.index') }}" class="px-2.5 py-1.5 rounded-md {{ request()->routeIs('admin.chats.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white' }}">💬 Chats & Messages</a>
                     <a href="{{ route('admin.reports.index') }}" class="px-2.5 py-1.5 rounded-md {{ request()->routeIs('admin.reports.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white' }}">Reports</a>
                     <a href="{{ route('admin.payments.index') }}" class="px-2.5 py-1.5 rounded-md {{ request()->routeIs('admin.payments.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white' }}">Payments (XTR)</a>
                     <a href="{{ route('admin.withdrawals.index') }}" class="px-2.5 py-1.5 rounded-md {{ request()->routeIs('admin.withdrawals.*') ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white' }}">💸 Withdraw (GPay/Bank)</a>

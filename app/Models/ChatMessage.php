@@ -12,6 +12,7 @@ class ChatMessage extends Model
         'sender_user_id',
         'telegram_message_id',
         'message_type',
+        'message_text',
         'char_length',
         'moderation_state',
     ];

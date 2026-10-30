@@ -635,6 +635,136 @@ class TelegramBotFeatureTest extends TestCase
         $this->actingAs($webAdmin)->get('/admin/audit-logs')->assertOk();
     }
 
+    public function test_gender_selection_message_storage_and_admin_chats_viewer(): void
+    {
+        $webAdmin = User::create([
+            'name' => 'Chats Admin',
+            'email' => 'chatsadmin@example.com',
+            'password' => 'secret123',
+            'role' => 'super_admin',
+            'is_active' => true,
+        ]);
+
+        // 1. User A (99001) and User B (99002) accept terms
+        foreach ([99001, 99002] as $idx => $tgId) {
+            TelegramUser::create([
+                'telegram_id' => $tgId,
+                'first_name' => 'User' . ($idx + 1),
+                'language_code' => 'en',
+                'accepted_terms_at' => now(),
+                'status' => 'active',
+            ]);
+        }
+
+        // 2. User A sends /gender and selects Male via callback; User B selects Female
+        $this->sendWebhook([
+            'update_id' => 6001,
+            'message' => [
+                'message_id' => 1,
+                'from' => ['id' => 99001, 'language_code' => 'en'],
+                'chat' => ['id' => 99001, 'type' => 'private'],
+                'text' => '/gender',
+            ],
+        ]);
+
+        $this->sendWebhook([
+            'update_id' => 6002,
+            'callback_query' => [
+                'id' => 'cb_gen_1',
+                'from' => ['id' => 99001],
+                'data' => 'gender:set:male',
+            ],
+        ]);
+
+        $this->sendWebhook([
+            'update_id' => 6003,
+            'callback_query' => [
+                'id' => 'cb_gen_2',
+                'from' => ['id' => 99002],
+                'data' => 'gender:set:female',
+            ],
+        ]);
+
+        $userA = TelegramUser::where('telegram_id', 99001)->firstOrFail();
+        $userB = TelegramUser::where('telegram_id', 99002)->firstOrFail();
+        $this->assertSame('male', $userA->gender);
+        $this->assertSame('female', $userB->gender);
+
+        // 3. Connect User A and User B via /search
+        $this->sendWebhook([
+            'update_id' => 6004,
+            'message' => [
+                'message_id' => 4,
+                'from' => ['id' => 99001, 'language_code' => 'en'],
+                'chat' => ['id' => 99001, 'type' => 'private'],
+                'text' => '/search',
+            ],
+        ]);
+
+        $this->sendWebhook([
+            'update_id' => 6005,
+            'message' => [
+                'message_id' => 5,
+                'from' => ['id' => 99002, 'language_code' => 'en'],
+                'chat' => ['id' => 99002, 'type' => 'private'],
+                'text' => '/search',
+            ],
+        ]);
+
+        $conv = $userA->activeConversation();
+        $this->assertNotNull($conv);
+
+        // 4. Both users exchange messages -> verify message_text is stored in chat_messages
+        $this->sendWebhook([
+            'update_id' => 6006,
+            'message' => [
+                'message_id' => 6,
+                'from' => ['id' => 99001, 'language_code' => 'en'],
+                'chat' => ['id' => 99001, 'type' => 'private'],
+                'text' => 'Hello from User A! How are you doing today?',
+            ],
+        ]);
+
+        $this->sendWebhook([
+            'update_id' => 6007,
+            'message' => [
+                'message_id' => 7,
+                'from' => ['id' => 99002, 'language_code' => 'en'],
+                'chat' => ['id' => 99002, 'type' => 'private'],
+                'text' => 'Hi there! I am doing great, thanks for asking.',
+            ],
+        ]);
+
+        $this->assertDatabaseHas('chat_messages', [
+            'conversation_id' => $conv->id,
+            'sender_user_id' => $userA->id,
+            'message_text' => 'Hello from User A! How are you doing today?',
+        ]);
+
+        $this->assertDatabaseHas('chat_messages', [
+            'conversation_id' => $conv->id,
+            'sender_user_id' => $userB->id,
+            'message_text' => 'Hi there! I am doing great, thanks for asking.',
+        ]);
+
+        // 5. Verify Admin Chats Explorer, Quick View JSON, and Full Transcript View
+        $this->actingAs($webAdmin)->get('/admin/chats?q=doing+great')
+            ->assertOk()
+            ->assertSee('#' . $conv->id);
+
+        $this->actingAs($webAdmin)->get("/admin/chats/{$conv->id}")
+            ->assertOk()
+            ->assertSee('Hello from User A! How are you doing today?')
+            ->assertSee('Hi there! I am doing great, thanks for asking.');
+
+        $this->actingAs($webAdmin)->getJson("/admin/chats/{$conv->id}/messages")
+            ->assertOk()
+            ->assertJsonPath('conversation.id', $conv->id)
+            ->assertJsonCount(2, 'messages')
+            ->assertJsonPath('messages.0.message_text', 'Hello from User A! How are you doing today?')
+            ->assertJsonPath('messages.1.message_text', 'Hi there! I am doing great, thanks for asking.');
+    }
+
     private function sendWebhook(array $payload): void
     {
         $this->postJson('/telegram/webhook', $payload, [

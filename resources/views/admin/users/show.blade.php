@@ -27,9 +27,20 @@
             <div class="text-slate-400 font-semibold uppercase text-[10px]">Profile & Timestamps</div>
             <div>Full Name: <strong class="text-white">{{ trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: 'N/A' }}</strong></div>
             <div>Username: <strong class="text-indigo-300 font-mono">{{ $user->username ? '@' . $user->username : 'N/A' }}</strong></div>
+            <div>Gender: <strong class="text-indigo-300">{{ $user->genderLabel() }}</strong></div>
             <div>Language: <strong class="uppercase">{{ $user->language_code }}</strong></div>
             <div>Terms Accepted: <strong>{{ $user->accepted_terms_at?->format('Y-m-d H:i') ?? 'No' }}</strong></div>
             <div>Last Seen: <strong>{{ $user->last_seen_at?->diffForHumans() ?? 'Never' }}</strong></div>
+            <form method="POST" action="{{ route('admin.users.profile', $user) }}" class="pt-2 border-t border-slate-800 flex items-center gap-1.5">
+                @csrf
+                <select name="gender" class="flex-1 rounded bg-slate-950 border border-slate-700 px-2 py-1 text-white">
+                    <option value="" @selected(empty($user->gender))>Unspecified Gender</option>
+                    <option value="male" @selected($user->gender === 'male')>👨 Male</option>
+                    <option value="female" @selected($user->gender === 'female')>👩 Female</option>
+                    <option value="other" @selected($user->gender === 'other')>🧑 Other</option>
+                </select>
+                <button type="submit" class="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Set</button>
+            </form>
         </div>
 
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1.5">
@@ -110,11 +121,14 @@
                             <div>
                                 <span class="font-bold text-indigo-300">Match #{{ $conv?->id }}</span>
                                 @if ($partner)
-                                    <span class="text-slate-300 ml-2">Partner: <a href="{{ route('admin.users.show', $partner->id) }}" class="text-indigo-400 underline">{{ $partner->displayName() }} (#{{ $partner->id }})</a></span>
+                                    <span class="text-slate-300 ml-2">Partner: <a href="{{ route('admin.users.show', $partner->id) }}" class="text-indigo-400 underline">{{ $partner->displayName() }} (#{{ $partner->id }})</a> · <span class="text-slate-400">{{ $partner->genderLabel() }}</span></span>
                                 @endif
                             </div>
-                            <div class="text-slate-400">
-                                {{ $conv?->messages?->count() ?? 0 }} msgs • {{ $conv?->started_at?->format('Y-m-d H:i') }}
+                            <div class="flex items-center gap-2 text-slate-400">
+                                <span>{{ $conv?->messages?->count() ?? 0 }} msgs • {{ $conv?->started_at?->format('Y-m-d H:i') }}</span>
+                                @if ($conv)
+                                    <a href="{{ route('admin.chats.show', $conv) }}" class="px-2 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white font-semibold">View Chat &rarr;</a>
+                                @endif
                             </div>
                         </div>
                     @empty

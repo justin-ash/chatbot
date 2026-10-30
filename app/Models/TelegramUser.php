@@ -17,6 +17,7 @@ class TelegramUser extends Model
         'first_name',
         'last_name',
         'is_premium',
+        'gender',
         'language_code',
         'accepted_terms_at',
         'status',
@@ -51,6 +52,16 @@ class TelegramUser extends Model
             return '@' . $this->username;
         }
         return 'TG #' . $this->telegram_id;
+    }
+
+    public function genderLabel(): string
+    {
+        return match ($this->gender) {
+            'male' => '👨 Male',
+            'female' => '👩 Female',
+            'other' => '🧑 Other',
+            default => 'Unspecified',
+        };
     }
 
     public function hasAcceptedTerms(): bool
